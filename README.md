@@ -5,9 +5,8 @@ Grupa: 335CA
 I) Descriere cod
 	Codul pentru microcontroller a fost creat pentru a coordona urmatoarele
 evenimente:
-
-	1. Sa faca switch intre cele doua moduri de operare, folosind butonul PB2 de
-pe placuta. Cand acesta genereaza o intrerupere, schimbam modul de operare si
+	1. Sa faca switch intre cele doua moduri de operare, folosind butonul PB2 
+de pe placuta. Cand acesta genereaza o intrerupere, schimbam modul de operare si
 semnalam modul curent prin aprinderea ledului PD7.
 	2. Sa itereze prin fiecare linie si fiecare coloana a matricei de butoane
 pentru a verifica daca exista input de la utilizator. Fiecare buton este asociat
@@ -34,14 +33,12 @@ codul pe placuta rulam comanda
 	Flagul -r transmite programului sa reporneasca placuta.
 
 III) Software auxiliar
-
 	Deoarece calculatorul nu stie ca placuta e un device MIDI, trebuie sa
 instalam un program auxiliar care sa faca transformarea Serial ↔ MIDI. Un astfel
 de program poate fi gasit aici: http://projectgus.github.io/hairless-midiserial/
 	Acum calculatorul va vedea un port MIDI pe care se vor transmite semnalele.
 
 IV) Altele
-
 	In radacina proiectului sunt deja compilate 3 variante ale programului:
 	* midi-controller-1s.hex - loop cu durata de 1 secunda
 	* midi-controller-2s.hex - loop cu durata de 2 secunda
