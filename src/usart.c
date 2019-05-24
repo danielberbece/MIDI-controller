@@ -5,9 +5,9 @@
  */
 void USART0_init()
 {
-    /* seteaza baud rate la 76800 */ 
+    /* seteaza baud rate la 115200 */
     UBRR0H = 0;
-    UBRR0L = 12;
+    UBRR0L = 8;
 
     /* porneste transmitatorul */
     UCSR0B = (1<<TXEN0) | (1<<RXEN0);
