@@ -4,7 +4,6 @@
 #include "light_ws2812.h"
 #include "usart.h"
 
-#define PIANO 0x01
 #define C4 60
 #define FADE_STEP 2
 #define COLS_BTN 4
@@ -12,19 +11,28 @@
 #define NUM_BTN LINES_BTN * COLS_BTN
 #define NUM_LED NUM_BTN
 
+// Variabila in care retin modul de operare curent
 uint8_t mode = 0;
 
+// Bufferul de culori trimise catre banda de led
 struct cRGB led[NUM_LED];
+// Array cu culoarea fiecarui buton
 struct cRGB ledColors[NUM_LED];
+// Starea fiecarui buton (apasat, neapasat)
 uint8_t btnPressed[NUM_BTN];
 
-uint8_t maxTime = 16 * 1;
-uint8_t soundMatrix[32][NUM_BTN];
+// Timpul maxim de numarare 
+#define MAX_TIME 16   // Daca dorim timpul de looping mai mare
+                        // marim MAX_TIME
+// Matrice in care retinem sunetele pentru looping
+// Aflam ce semnale MIDI trebuie sa trimitem la un moment de timp
+uint8_t soundMatrix[MAX_TIME][NUM_BTN];
+
 uint8_t time;
 
-uint8_t noteOn = 0x90;
-uint8_t noteOff = 0x80;
-uint8_t instrumentSelect = 0xC0;
+// Usart MIDI 
+#define NOTE_ON 0x90
+#define NOTE_OFF 0x80
 
 void IO_init() {
     // Butonul PB2 pentru schimbarea modului
@@ -59,9 +67,10 @@ void timer1_init() {
     // pentru 16Hz
     OCR1A = 15625;
 
-    // activeaza intreruperea pe OCR1A.
+    // Activeaza intreruperea pe OCR1A.
     TIMSK1 = (1 << OCIE1A);
-    // mod de functionare in CTC cu TOP la OCR1A
+
+    // Mod de functionare in CTC cu TOP la OCR1A
     // Prescalerul este setat la 64
     TCCR1B = (3 << CS10) | (1 << WGM12);
 }
@@ -79,6 +88,9 @@ void sendMIDI(uint8_t type, uint8_t channel) {
     uint8_t note = C4;
     uint8_t baseVelocity = 64;
 
+    // Trimitem pe usart un semnal MIDI de tip Note On/Off
+    // La care trebuie sa adaugam canalul, nota si viteza
+    // Ultimele 2 sunt la o valoare default
     USART0_transmit(type | channel);
     USART0_transmit(note);
     USART0_transmit(baseVelocity);
@@ -95,6 +107,8 @@ void unsetLed(uint8_t ledIdx) {
 }
 
 void resetLeds(struct cRGB ledColor) {
+    // Seteaza ledurile la ledColor doar daca ne aflam in modul
+    // looping sau in modul normal dar butonul nu este apasat
     for (uint8_t i = 0; i < NUM_LED; i++) {
         if ((mode == 0 && btnPressed[i] == 0) || mode == 1)
             led[i] = ledColor;
@@ -103,7 +117,8 @@ void resetLeds(struct cRGB ledColor) {
 }
 
 void setLedBtn(uint8_t btnIdx) {
-    uint8_t ledIdx;    
+    uint8_t ledIdx;
+    // Obtine id-ul ledului in functie de id-ul butonului
     if (btnIdx > 3 && btnIdx < 8) {
         ledIdx = 4 + (7 - btnIdx);
     } else if (btnIdx > 11) {
@@ -111,19 +126,22 @@ void setLedBtn(uint8_t btnIdx) {
     } else {
         ledIdx = btnIdx;
     }
+
+    // Aprinde ledul aferent
     setLed(ledIdx);
 }
 
-void checkSound() {
-    // Itereaza prin fiecare buton si vezi care
-    // semnal midi trebuie trimis
+void checkSoundLoop() {
+    // Reseteaza ledurile la inceputul perioadei de timp
     if (time == 0) {
         resetLeds(color(0, 0, 0));
     }
 
+    // Itereaza prin fiecare buton si vezi care
+    // semnal midi trebuie trimis
     for (uint8_t i = 0; i < NUM_BTN; i++) {
         if(soundMatrix[time][i] != 0) {
-            sendMIDI(noteOn, i);
+            sendMIDI(NOTE_ON, i);
             setLedBtn(i);
         }
     }
@@ -148,10 +166,10 @@ ISR(PCINT1_vect) {
 ISR(TIMER1_COMPA_vect) {
     // Incrementeaza timpul
     time ++;
-    time %= maxTime;
+    time %= MAX_TIME;
 
     // Verifica daca trebuie sa trimitem un semnal MIDI
-    checkSound();
+    checkSoundLoop();
 
     // Stinge ledurile treptat
     if (mode == 0) {
@@ -198,28 +216,34 @@ void checkPress(uint8_t PAx, uint8_t PCx) {
         } else {
             soundMatrix[time][btnIdx] = 1;
         }
-        sendMIDI(noteOn, btnIdx);
+        sendMIDI(NOTE_ON, btnIdx);
         setLed(ledIdx);
     } else if((PINA & (1 << PAx)) && btnPressed[ledIdx]) { // Buton lasat
         btnPressed[ledIdx] = 0;
         if (mode == 0) {
-            sendMIDI(noteOff, btnIdx);
+            sendMIDI(NOTE_OFF, btnIdx);
             unsetLed(ledIdx);
         }
     }
+    // Such debounce
     _delay_us(10);
 }
 
 void color_seq_init() {
+    // Setam fiercarei linii o culoare:
+    // Albastru
     for (uint8_t i = 0; i < 4; i++) {
         ledColors[i] = color(0, 15, 80);
     }
+    // Portocaliu
     for (uint8_t i = 4; i < 8; i++) {
         ledColors[i] = color(80, 20, 0);
     }
+    // Galben
     for (uint8_t i = 8; i < 12; i++) {
         ledColors[i] = color(70, 70, 0);
     }
+    // Verde
     for (uint8_t i = 12; i < 16; i++) {
         ledColors[i] = color(0, 80, 2);
     }

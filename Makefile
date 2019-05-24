@@ -42,4 +42,4 @@ $(PROJ): $(LEDs) $(USART)
 .PHONY:	clean
 
 clean:
-	rm -f *.hex Objects/*.o Objects/*.lss
+	rm -f main.hex Objects/*.o Objects/*.lss
