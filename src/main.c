@@ -22,7 +22,7 @@ struct cRGB ledColors[NUM_LED];
 uint8_t btnPressed[NUM_BTN];
 
 // Timpul maxim de numarare 
-#define MAX_TIME 16   // Daca dorim timpul de looping mai mare
+#define MAX_TIME 32   // Daca dorim timpul de looping mai mare
                         // marim MAX_TIME
 // Matrice in care retinem sunetele pentru looping
 // Aflam ce semnale MIDI trebuie sa trimitem la un moment de timp
@@ -65,7 +65,7 @@ void IO_init() {
 void timer1_init() {
     // Setam OCR1A pe valoarea la care va intrerupe ceasul
     // pentru 16Hz
-    OCR1A = 15625;
+    OCR1A = 15624;
 
     // Activeaza intreruperea pe OCR1A.
     TIMSK1 = (1 << OCIE1A);
@@ -109,7 +109,7 @@ void unsetLed(uint8_t ledIdx) {
 void resetLeds(struct cRGB ledColor) {
     // Seteaza ledurile la ledColor doar daca ne aflam in modul
     // looping sau in modul normal dar butonul nu este apasat
-    for (uint8_t i = 0; i < NUM_LED; i++) {
+    for (uint8_t i = 0; i < NUM_LED /2; i++) {
         if ((mode == 0 && btnPressed[i] == 0) || mode == 1)
             led[i] = ledColor;
     }
@@ -139,7 +139,7 @@ void checkSoundLoop() {
 
     // Itereaza prin fiecare buton si vezi care
     // semnal midi trebuie trimis
-    for (uint8_t i = 0; i < NUM_BTN; i++) {
+    for (uint8_t i = 0; i < NUM_BTN / 2; i++) {
         if(soundMatrix[time][i] != 0) {
             sendMIDI(NOTE_ON, i);
             setLedBtn(i);
@@ -173,7 +173,7 @@ ISR(TIMER1_COMPA_vect) {
 
     // Stinge ledurile treptat
     if (mode == 0) {
-        for(uint8_t i = 0; i < NUM_LED; i++) {
+        for(uint8_t i = 0; i < NUM_LED / 2; i++) {
             if (btnPressed[i] == 0) {
                 if (led[i].r <= FADE_STEP) {
                     led[i].r = 0;
@@ -213,7 +213,7 @@ void checkPress(uint8_t PAx, uint8_t PCx) {
     if(!(PINA & (1 << PAx)) && !btnPressed[ledIdx]) {  // Buton apasat
         btnPressed[ledIdx] = 1;
         if (mode == 0) {
-        } else {
+        } else if(btnIdx < 8){
             soundMatrix[time][btnIdx] = 1;
         }
         sendMIDI(NOTE_ON, btnIdx);
